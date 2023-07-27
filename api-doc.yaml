@@ -1,0 +1,629 @@
+openapi: 3.0.1
+x-stoplight:
+  id: a9grmalncwpuu
+info:
+  title: LaylaElectric External API
+  version: 1.0.0
+  x-logo:
+    url: './logo.png'
+    backgroundColor: '#FFFFFF'
+    altText: 'Layla logo'
+  description:
+    $ref: ./intro.md
+servers:
+  - url: 'https://0641aw98ta.execute-api.us-west-2.amazonaws.com/latest'
+security:
+  - JWT: []
+tags:
+  - name: users
+    description: User management
+  - name: properties
+    description: Property management
+  - name: devices
+    description: Device management
+  - name: statistics
+    description: Various statistics
+paths:
+  /api/users/self:
+    get:
+      tags:
+        - users
+      summary: Get currently logged-in user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserViewModel'
+    put:
+      summary: Update currently logged-in user
+      tags:
+        - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateModel'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserViewModel'
+    patch:
+      summary: Patch (update partially) currently logged-in user
+      tags:
+        - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPatchModel'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserViewModel'
+  /api/properties:
+    get:
+      tags:
+        - properties
+      summary: List properties for current (logged-in) user
+      description: ''
+      parameters:
+        - name: id
+          in: query
+          description: ID of the specific property
+          required: false
+          schema:
+            type: string
+        - name: fields
+          description: Comma-separated list of additional fields to be included into response
+          in: query
+          required: false
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - alarm_event_counts
+                - monthly_savings
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyViewModel'
+      x-internal: false
+  /api/devices:
+    get:
+      summary: List devices for current (logged-in) user
+      tags:
+        - devices
+      description: ''
+      parameters:
+        - name: fields
+          description: Comma-separated list of additional fields to be included into response
+          in: query
+          required: false
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - alarm_event_counts
+                - latest_values
+                - in_alarm
+                - snoozed
+                - active_alarms
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceViewModel'
+  '/api/devices/{id}':
+    get:
+      summary: Get device details
+      tags:
+        - devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceViewModel'
+      description: ''
+  '/api/devices/{id}/values':
+    get:
+      summary: Get device measurements
+      tags:
+        - devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: measure
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - power
+              - temperature
+              - noise
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - minutes
+              - hours
+              - days
+              - months
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            title: 'start date-time in ISO format (without timezone, timezone is taken from the device property) (inclusive)'
+            format: date-time
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            title: 'end date-time in ISO format (without timezone, timezone is taken from the device property) (exclusive)'
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MeasureValueModel'
+  /api/statistics/overall:
+    get:
+      summary: Get statistics
+      tags:
+        - statistics
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum:
+              - day
+              - week
+              - month
+              - year
+        - name: fields
+          description: Comma-separated list of additional fields to be included into response
+          in: query
+          required: false
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - trends
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StatisticsModel'
+  /api/notifications:
+    get:
+      summary: Get notifications
+      tags:
+        - notifications
+      parameters:
+        - name: property_id
+          in: query
+          schema:
+            type: string
+        - name: seen
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationModel'
+components:
+  schemas:
+    UserModel:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        company:
+          type: string
+        title:
+          type: string
+      x-stoplight:
+        id: pwsc13xql23it
+    UserViewModel:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/UserModel'
+      properties:
+        picture_url:
+          type: string
+        picture_preview_url:
+          type: string
+      x-stoplight:
+        id: gsuazwle3rkje
+    UserUpdateModel:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/UserModel'
+      properties:
+        picture_url:
+          type: string
+      required:
+        - name
+        - phone
+        - address
+        - company
+        - title
+      x-stoplight:
+        id: xnb8ve1phcpk5
+    UserPatchModel:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/UserModel'
+      properties:
+        picture_url:
+          type: string
+        fcm_token:
+          type: string
+          title: Firebase token
+      x-stoplight:
+        id: x7qq2v1p2y9f9
+    PropertyModel:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+          enum:
+            - house
+            - apartment
+            - office
+            - commercial
+        address:
+          type: string
+        timezone:
+          type: string
+        enabled:
+          type: boolean
+      x-stoplight:
+        id: lv3ar4gppout4
+    PropertyViewModel:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/PropertyModel'
+      properties:
+        enabled_alarms:
+          type: array
+          items:
+            type: string
+            enum:
+              - noise_alarm
+              - occupancy_alarm
+              - security_alarm
+        enabled_features:
+          type: array
+          items:
+            type: string
+            enum:
+              - eco
+        alarm_event_counts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlarmCountModel'
+        monthly_savings:
+          type: object
+          properties:
+            costs:
+              type: number
+      x-stoplight:
+        id: 2wcxufnfaxa3s
+    DeviceModel:
+      type: object
+      properties:
+        device_mac:
+          type: string
+        category:
+          type: string
+          enum:
+            - EM
+            - SP
+        name:
+          type: string
+        enabled:
+          type: boolean
+        alarms:
+          type: array
+          title: Alarms configuration
+          items:
+            $ref: '#/components/schemas/AlarmConfigurationModel'
+        features:
+          type: array
+          items:
+            type: string
+            enum:
+              - eco
+        settings:
+          $ref: '#/components/schemas/DeviceSettingsModel'
+      x-stoplight:
+        id: z8al3xp8cxwg8
+    DeviceViewModel:
+      allOf:
+        - $ref: '#/components/schemas/DeviceModel'
+      properties:
+        id:
+          type: string
+        property_id:
+          type: string
+        alarm_event_counts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlarmCountModel'
+        latest_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeasureValueModel'
+        in_alarm:
+          type: array
+          title: 'List of firing alarms (deprecated, use "active_alarms" instead)'
+          items:
+            type: string
+            enum:
+              - noise_alarm
+              - occupancy_alarm
+              - device_off_alarm
+              - security_alarm
+        snoozed:
+          type: array
+          title: 'List of snoozed alarms (deprecated, use "active_alarms" instead)'
+          items:
+            type: string
+            enum:
+              - noise_alarm
+              - occupancy_alarm
+              - security_alarm
+        active_alarms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActiveAlarmModel'
+      x-stoplight:
+        id: t6v935rkf1az3
+      type: object
+    DeviceSettingsModel:
+      type: object
+      properties:
+        irMode:
+          type: string
+          title: IR mode
+          enum:
+            - smart
+            - learn
+      x-stoplight:
+        id: 17ams1d2bvnqr
+    AlarmConfigurationModel:
+      type: object
+      properties:
+        name:
+          type: string
+          enum:
+            - noise_alarm
+            - noise_alarm_quiet_hours
+            - occupancy_alarm
+            - occupancy_alarm_quiet_hours
+            - security_alarm
+        value:
+          type: number
+        value_label:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        quiet_hours:
+          type: object
+          title: quiet hours
+          properties:
+            start:
+              type: string
+              title: start hour/minute
+              pattern: '[0-9]{2}:[0-9]{2}'
+            end:
+              type: string
+              title: end hour/minute
+              pattern: '[0-9]{2}:[0-9]{2}'
+          required:
+            - start
+            - end
+      required:
+        - name
+      x-stoplight:
+        id: i26v4lezr1p9z
+    AlarmCountModel:
+      type: object
+      properties:
+        name:
+          type: string
+          enum:
+            - noise_alarm
+            - occupancy_alarm
+            - device_off_alarm
+            - security_alarm
+        count:
+          type: number
+      x-stoplight:
+        id: h7oev69ca7s3w
+    ActiveAlarmModel:
+      type: object
+      properties:
+        name:
+          type: string
+          enum:
+            - noise_alarm
+            - occupancy_alarm
+            - device_off_alarm
+            - security_alarm
+        state:
+          type: string
+          enum:
+            - in_alarm
+            - snoozed
+        first_datapoint_timestamp:
+          type: string
+          format: date-time
+      x-stoplight:
+        id: q320slbhlgk4l
+    AlarmCountChangeModel:
+      type: object
+      properties:
+        name:
+          type: string
+          enum:
+            - noise_alarm
+            - occupancy_alarm
+            - device_off_alarm
+            - security_alarm
+        change:
+          type: number
+          title: count change in percentage
+      x-stoplight:
+        id: 8tm12mzyovxto
+    MeasureValueModel:
+      type: object
+      properties:
+        name:
+          type: string
+          enum:
+            - power
+            - energy
+            - noise
+            - temperature
+            - humidity
+            - occup_min
+            - occup_max
+            - wifi_rssi
+        value:
+          type: number
+        min_value:
+          type: number
+          description: applicable to 'power' and 'noise' measures only
+        max_value:
+          type: number
+          description: applicable to 'power' and 'noise' measures only
+        timestamp:
+          type: string
+          format: date-time
+      x-stoplight:
+        id: x5xqudlt3jrsl
+    StatisticsModel:
+      type: object
+      properties:
+        costs:
+          type: number
+          title: Total costs
+        alarm_event_counts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlarmCountModel'
+        savings:
+          type: object
+          properties:
+            costs:
+              type: number
+            energy:
+              type: number
+            co2:
+              type: number
+            trees:
+              type: number
+        trends:
+          type: object
+          properties:
+            costs:
+              type: number
+              title: costs change in percentage
+            alarm_event_counts:
+              type: array
+              items:
+                $ref: '#/components/schemas/AlarmCountChangeModel'
+      x-stoplight:
+        id: v0wg5hnlnzvvd
+    NotificationModel:
+      type: object
+      properties:
+        id:
+          type: string
+        property_id:
+          type: string
+        device_id:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          title: creation time in property timezone
+          format: date-time
+        seen:
+          type: boolean
+      x-stoplight:
+        id: 3qyrojm1af2ea
+  securitySchemes:
+    JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
